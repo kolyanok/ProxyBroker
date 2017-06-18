@@ -90,16 +90,8 @@ class Provider:
         return self.proxies
 
     async def _start_new_session(self):
-        # TODO: waiting aiohttp ^0.22.0 with custom resolver:
-        # connector = aiohttp.TCPConnector(
-        #     use_dns_cache=True, resolver=self._resolver, loop=self._loop)
-        host = self.domain.split('^')[0]
-        try:
-            host_info = await self._resolver.resolve(host=host, family=socket.AF_INET)
-        except ResolveError:
-            return
-        connector = aiohttp.TCPConnector(use_dns_cache=True, loop=self._loop)
-        connector._cached_hosts.add((host, 80), host_info)
+        connector = aiohttp.TCPConnector(
+            use_dns_cache=True, resolver=self._resolver, loop=self._loop)
         self._session = aiohttp.ClientSession(
             connector=connector, headers=get_headers(),
             cookies=self._cookies, loop=self._loop)
