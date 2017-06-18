@@ -1,9 +1,9 @@
+import socket
 from unittest.mock import Mock, patch
 
-from .utils import AsyncTestCase, ResolveResult, future_iter
+import aiodns
 
-import socket
-from proxybroker.errors import ResolveError
+from .utils import AsyncTestCase, ResolveResult, future_iter
 from proxybroker.resolver import Resolver
 
 
@@ -42,40 +42,25 @@ class TestResolver(AsyncTestCase):
 
     async def test_resolve(self):
         rs = Resolver(timeout=0.1)
-        self.assertEqual(await rs.resolve('127.0.0.1'), '127.0.0.1')
+        hinfo = await rs.resolve('127.0.0.1')
+        host = hinfo[0]['host']
+        self.assertEqual(host, '127.0.0.1')
 
-        with self.assertRaises(ResolveError):
+        with self.assertRaises(aiodns.error.DNSError):
             await rs.resolve('256.0.0.1')
 
-        with patch("aiodns.DNSResolver.query") as query:
-            query.side_effect = future_iter([ResolveResult('127.0.0.1', 0)])
-            self.assertEqual(await rs.resolve('test.com'), '127.0.0.1')
+        with patch("aiodns.DNSResolver.gethostbyname") as query:
+            query.side_effect = future_iter(ResolveResult(['127.0.0.1'], 0))
+            hinfo = await rs.resolve('test.com')
+            host = hinfo[0]['host']
+            self.assertEqual(host, '127.0.0.1')
 
     async def test_resolve_family(self):
         rs = Resolver(timeout=0.1)
-        with patch("aiodns.DNSResolver.query") as query:
-            query.side_effect = future_iter([ResolveResult('127.0.0.2', 0)])
-            resp = [{'hostname': 'test2.com', 'host': '127.0.0.2', 'port': 80,
+        with patch("aiodns.DNSResolver.gethostbyname") as query:
+            query.side_effect = future_iter(ResolveResult(['127.0.0.2'], 0))
+            hinfo = await rs.resolve('test2.com', family=socket.AF_INET)
+            resp = [{'hostname': 'test2.com', 'host': '127.0.0.2', 'port': 0,
                      'family': socket.AF_INET, 'proto': socket.IPPROTO_IP,
                      'flags': socket.AI_NUMERICHOST}]
-            self.assertEqual(
-                await rs.resolve('test2.com', family=socket.AF_INET), resp)
-
-    async def test_resolve_cache(self):
-        rs = Resolver(timeout=0.1)
-
-        with patch("aiodns.DNSResolver.query") as query:
-            query.side_effect = future_iter([ResolveResult('127.0.0.1', 0)])
-            await rs.resolve('test.com')
-
-            query.side_effect = future_iter([ResolveResult('127.0.0.2', 0)])
-            port = 80
-            resp = [{'hostname': 'test2.com', 'host': '127.0.0.2', 'port': port,
-                     'family': socket.AF_INET, 'proto': socket.IPPROTO_IP,
-                     'flags': socket.AI_NUMERICHOST}]
-            await rs.resolve('test2.com', port=80, family=socket.AF_INET)
-
-        rs._resolve = None
-        self.assertEqual(await rs.resolve('test.com'), '127.0.0.1')
-        resp = await rs.resolve('test2.com')
-        self.assertEqual(resp[0]['host'], '127.0.0.2')
+            self.assertEqual(hinfo, resp)

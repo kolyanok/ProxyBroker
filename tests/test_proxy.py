@@ -32,8 +32,8 @@ class TestProxy(AsyncTestCase):
         self.assertRaises(ValueError, Proxy, '127.0.0.1', '65536')
 
     async def test_create_with_domain(self):
-        with patch("aiodns.DNSResolver.query") as query:
-            query.side_effect = future_iter([ResolveResult('127.0.0.1', 0)])
+        with patch("aiodns.DNSResolver.gethostbyname") as query:
+            query.side_effect = future_iter(ResolveResult(['127.0.0.1'], 0))
             resolver = Resolver()
             proxy = await Proxy.create('testhost.com', '80', resolver=resolver)
             self.assertEqual(proxy.host, '127.0.0.1')

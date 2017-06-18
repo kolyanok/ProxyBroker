@@ -26,7 +26,7 @@ class AsyncTestCase(unittest.TestCase, metaclass=AutoDecorateAsyncMeta):
     pass
 
 
-ResolveResult = namedtuple('ResolveResult', ['host', 'ttl'])
+ResolveResult = namedtuple('ResolveResult', ['addresses', 'ttl'])
 
 
 def future_iter(*args):

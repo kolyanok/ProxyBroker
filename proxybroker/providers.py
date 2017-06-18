@@ -1,5 +1,4 @@
 import re
-import socket
 import asyncio
 import warnings
 from math import sqrt
@@ -9,7 +8,7 @@ from urllib.parse import unquote, urlparse
 
 import aiohttp
 
-from .errors import *
+from .errors import BadStatusError
 from .utils import log, get_headers, IPPattern, IPPortPatternGlobal
 from .resolver import Resolver
 
@@ -128,7 +127,8 @@ class Provider:
 
     async def get(self, url, data=None, headers=None, method='GET'):
         for _ in range(self._max_tries):
-            page = await self._get(url, data=data, headers=headers, method=method)
+            page = await self._get(url, data=data, headers=headers,
+                                   method=method)
             if page:
                 break
         return page
@@ -137,15 +137,17 @@ class Provider:
         page = ''
         try:
             with (await self._sem_provider),\
-                 aiohttp.Timeout(self._timeout, loop=self._loop):
+                    aiohttp.Timeout(self._timeout, loop=self._loop):
                 async with self._session.request(method, url, data=data,
                                                  headers=headers) as resp:
                     if resp.status == 200:
                         page = await resp.text()
                     else:
                         error_page = await resp.text()
-                        log.debug('url: %s\nheaders: %s\ncookies: %s\npage:\n%s' % (
-                                  url, resp.headers, resp.cookies, error_page))
+                        log.debug('url: %s\nheaders: %s\ncookies: '
+                                  '%s\npage:\n%s' % (
+                                      url, resp.headers, resp.cookies,
+                                      error_page))
                         raise BadStatusError('Status: %s' % resp.status)
         except (UnicodeDecodeError, BadStatusError, asyncio.TimeoutError,
                 aiohttp.ClientOSError, aiohttp.ClientResponseError,
@@ -264,7 +266,8 @@ class Aliveproxy_com(Provider):
     async def _pipe(self):
         paths = [
             'socks5-list', 'high-anonymity-proxy-list', 'anonymous-proxy-list',
-            'fastest-proxies', 'us-proxy-list', 'gb-proxy-list', 'fr-proxy-list',
+            'fastest-proxies', 'us-proxy-list', 'gb-proxy-list',
+            'fr-proxy-list',
             'de-proxy-list', 'jp-proxy-list', 'ca-proxy-list', 'ru-proxy-list',
             'proxy-list-port-80', 'proxy-list-port-81', 'proxy-list-port-3128',
             'proxy-list-port-8000', 'proxy-list-port-8080']
@@ -671,31 +674,55 @@ PROVIDERS = [
     Provider(url='http://geekelectronics.org/my-servisy/proxy',
              proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 395
     Proxy_list_org(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 140
-    Xseo_in(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),                  # 252
-    Spys_ru(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),                  # 674
-    Proxylistplus_com(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),        # 301
-    Proxyb_net(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),               # 857
-    Proxz_com(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25'), max_conn=2),    # 443
-    Proxymore_com(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),            # 1375
-    Proxylist_me(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),             # 2872
-    Foxtools_ru(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25'), max_conn=1),  # 500
-    Gatherproxy_com(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),          # 3212
-    Nntime_com(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),               # 1050
-    Proxynova_com(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),            # 818
-    Blogspot_com(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),             # 24800
-    Gatherproxy_com_socks(proto=('SOCKS4', 'SOCKS5')),                             # 30
-    Blogspot_com_socks(proto=('SOCKS4', 'SOCKS5')),                                # 1486
-    Tools_rosinstrument_com(proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 4347
-    Tools_rosinstrument_com_socks(proto=('SOCKS4', 'SOCKS5')),                     # 1362
-    My_proxy_com(max_conn=2),                                                      # 891
-    Checkerproxy_net(),                                                            # 15803
-    Aliveproxy_com(),                                                              # 210
-    Freeproxylists_com(),                                                          # 1338
-    Webanetlabs_net(),                                                             # 2615
-    Maxiproxies_com(),                                                             # 543
-    _50kproxies_com(),                                                             # 822
+    Xseo_in(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                   'CONNECT:25')),                  # 252
+    Spys_ru(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                   'CONNECT:25')),                  # 674
+    Proxylistplus_com(proto=('HTTP', 'CONNECT:80',
+                             'HTTPS', 'CONNECT:25')),        # 301
+    Proxyb_net(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                      'CONNECT:25')),               # 857
+    Proxz_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                     'CONNECT:25'), max_conn=2),    # 443
+    Proxymore_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                         'CONNECT:25')),            # 1375
+    Proxylist_me(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                        'CONNECT:25')),             # 2872
+    Foxtools_ru(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                       'CONNECT:25'), max_conn=1),  # 500
+    Gatherproxy_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                           'CONNECT:25')),          # 3212
+    Nntime_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                      'CONNECT:25')),               # 1050
+    Proxynova_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                         'CONNECT:25')),            # 818
+    Blogspot_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+                        'CONNECT:25')),             # 24800
+    Gatherproxy_com_socks(proto=('SOCKS4', 'SOCKS5')
+                          ),                             # 30
+    Blogspot_com_socks(proto=('SOCKS4', 'SOCKS5')
+                       ),                                # 1486
+    Tools_rosinstrument_com(
+        proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 4347
+    Tools_rosinstrument_com_socks(
+        proto=('SOCKS4', 'SOCKS5')),                     # 1362
+    # 891
+    My_proxy_com(max_conn=2),
+    # 15803
+    Checkerproxy_net(),
+    # 210
+    Aliveproxy_com(),
+    # 1338
+    Freeproxylists_com(),
+    # 2615
+    Webanetlabs_net(),
+    # 543
+    Maxiproxies_com(),
+    # 822
+    _50kproxies_com(),
     # # Bad...
-    # Provider(url='http://go4free.xyz/Free-Proxy/', proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 196
+    # Provider(url='http://go4free.xyz/Free-Proxy/',
+    # proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 196
     # Provider(url='http://blackstarsecurity.com/proxy-list.txt'),  # 7014
     # Provider(url='http://www.get-proxy.net/proxy-archives'),  # 519
     # Free_proxy_cz(),  # 420

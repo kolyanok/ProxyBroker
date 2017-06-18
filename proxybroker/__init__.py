@@ -40,8 +40,5 @@ import warnings
 logger = logging.getLogger('asyncio')
 logger.addFilter(logging.Filter('has no effect when using ssl'))
 
-logging.basicConfig(level=logging.DEBUG)
-logging.getLogger('asyncio').setLevel(logging.DEBUG)
-
 warnings.simplefilter('always', UserWarning)
 warnings.simplefilter('once', DeprecationWarning)

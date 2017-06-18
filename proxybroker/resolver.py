@@ -1,14 +1,11 @@
-import socket
 import asyncio
 import os.path
 import ipaddress
 from collections import namedtuple
 
-import aiodns
 import aiohttp
 import maxminddb
 
-from .errors import *
 from .utils import log, BASE_DIR
 
 
@@ -17,15 +14,15 @@ _mmdb_reader = maxminddb.open_database(
     os.path.join(BASE_DIR, 'data', 'GeoLite2-Country.mmdb'))
 
 
-class Resolver:
+class Resolver(aiohttp.resolver.AsyncResolver):
     """Async host resolver based on aiodns."""
 
     _cached_hosts = {}
 
-    def __init__(self, timeout=5, loop=None):
+    def __init__(self, timeout=5, loop=None, *args, **kwargs):
         self._timeout = timeout
         self._loop = loop or asyncio.get_event_loop()
-        self._resolver = aiodns.DNSResolver(loop=self._loop)
+        super().__init__(*args, loop=self._loop, **kwargs)
 
     @staticmethod
     def host_is_ip(host):
@@ -72,39 +69,3 @@ class Resolver:
             ip = data['origin'].split(', ')[0]
             log.debug('Real external IP: %s' % ip)
         return ip
-
-    async def resolve(self, host, port=80, family=None, qtype='A', logging=True):
-        """Return resolving IP address(es) from host name."""
-        if self.host_is_ip(host):
-            return host
-
-        _host = self._cached_hosts.get(host)
-        if _host:
-            return _host
-
-        resp = await self._resolve(host, qtype)
-
-        if resp:
-            hosts = [{'hostname': host, 'host': r.host, 'port': port,
-                      'family': family, 'proto': socket.IPPROTO_IP,
-                      'flags': socket.AI_NUMERICHOST} for r in resp]
-            if family:
-                self._cached_hosts[host] = hosts
-            else:
-                self._cached_hosts[host] = hosts[0]['host']
-            if logging:
-                log.debug('%s: Host resolved: %s' % (
-                    host, self._cached_hosts[host]))
-        else:
-            if logging:
-                log.warning('%s: Could not resolve host' % host)
-        return self._cached_hosts.get(host)
-
-    async def _resolve(self, host, qtype):
-        try:
-            resp = await asyncio.wait_for(self._resolver.query(host, qtype),
-                                          timeout=self._timeout)
-        except (aiodns.error.DNSError, asyncio.TimeoutError):
-            raise ResolveError
-        else:
-            return resp

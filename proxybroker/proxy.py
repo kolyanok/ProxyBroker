@@ -51,9 +51,10 @@ class Proxy:
         loop = kwargs.pop('loop', None)
         resolver = kwargs.pop('resolver', Resolver(loop=loop))
         try:
-            _host = await resolver.resolve(host)
+            _hinfo = await resolver.resolve(host)
+            _host = _hinfo[0]['host']
             self = cls(_host, *args, **kwargs)
-        except (ResolveError, ValueError) as e:
+        except (ResolveError, ValueError, IndexError) as e:
             log.error('%s:%s: Error at creating: %s' % (host, args[0], e))
             raise
         return self
