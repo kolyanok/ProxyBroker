@@ -515,8 +515,9 @@ class Spys_ru(Provider):
         page = await self.get(url)
         sessionId = re.findall(expSession, page)[0]
         data = {'xf0': sessionId,  # session id
-                'xpp': 3,          # 3 - 200 proxies on page
-                'xf1': None}       # 1 = ANM & HIA; 3 = ANM; 4 = HIA
+                'xpp': 4,          # 4 - 300 proxies on page
+                'xf1': None,          # 1 = ANM & HIA; 3 = ANM; 4 = HIA
+                'xf2': 1}          # 1 = SSL+
         method = 'POST'
         urls = [{'url': url, 'data': {**data, 'xf1': lvl},
                  'method': method} for lvl in [3, 4]]

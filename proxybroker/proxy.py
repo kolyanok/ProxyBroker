@@ -60,7 +60,7 @@ class Proxy:
         return self
 
     def __init__(self, host=None, port=None, types=(),
-                 timeout=8, verify_ssl=False):
+                 timeout=8, verify_ssl=True):
         self.host = host
         if not Resolver.host_is_ip(self.host):
             raise ValueError('The host of proxy should be the IP address. '
@@ -228,7 +228,15 @@ class Proxy:
         """
         return self._log
 
-    async def connect(self, ssl=False):
+    async def connect(self, ssl=False, server_hostname=None):
+        """Try to connect to a proxy server.
+
+        If using ssl, first call will connect to a proxy and second to
+        the target.
+        server_hostname is a hostname of the target, e.g. `httpbin.org'
+        """
+        if ssl and not server_hostname:
+            raise ValueError('You must set server_hostname when using ssl')
         err = None
         msg = '%s' % 'SSL: ' if ssl else ''
         stime = time.time()
@@ -237,7 +245,9 @@ class Proxy:
             if ssl:
                 _type = 'ssl'
                 sock = self._writer['conn'].get_extra_info('socket')
-                params = {'ssl': self._ssl_context, 'sock': sock, 'server_hostname': self.host}
+                params = {'ssl': self._ssl_context,
+                          'sock': sock,
+                          'server_hostname': server_hostname}
             else:
                 _type = 'conn'
                 params = {'host': self.host, 'port': self.port}
@@ -248,8 +258,9 @@ class Proxy:
             msg += 'Connection: timeout'
             err = ProxyTimeoutError(msg)
             raise err
-        except (ConnectionRefusedError, OSError, _ssl.SSLError):
+        except (ConnectionRefusedError, OSError, _ssl.SSLError) as e:
             msg += 'Connection: failed'
+            msg += str(e)
             err = ProxyConnError(msg)
             raise err
         # except asyncio.CancelledError:

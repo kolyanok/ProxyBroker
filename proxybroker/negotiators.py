@@ -15,10 +15,17 @@ SMTP_READY = 220
 
 def _CONNECT_request(host, port, **kwargs):
     kwargs.setdefault('User-Agent', get_headers()['User-Agent'])
-    kw = {'host': host, 'port': port, 'headers': '\r\n'.join(
-          ('%s: %s' % (k, v) for k, v in kwargs.items()))}
-    req = ('CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}\r\n'
-           '{headers}\r\nConnection: keep-alive\r\n\r\n').format(**kw).encode()
+    kw = {
+            'host': host,
+            'port': port,
+            'headers': '\r\n'.join(
+                ('%s: %s' % (k, v) for k, v in kwargs.items())
+            )
+        }
+    req = ('CONNECT {host}:{port} HTTP/1.1\r\n'
+           'Host: {host}\r\n'
+           '{headers}\r\n'
+           'Connection: keep-alive\r\n\r\n').format(**kw).encode()
     return req
 
 
@@ -128,15 +135,17 @@ class HttpsNgtr(BaseNegotiator):
 
     name = 'HTTPS'
 
-    async def negotiate(self, **kwargs):
-        await self._proxy.send(_CONNECT_request(kwargs.get('host'), 443))
+    async def negotiate(self, hostname):
+        """Negotiate with the proxy to connect to the hostname.
+        """
+        await self._proxy.send(_CONNECT_request(hostname, 443))
         resp = await self._proxy.recv(head_only=True)
         code = get_status_code(resp)
         if code != 200:
             self._proxy.log('Connect: failed. HTTP status: %s' % code,
                             err=BadStatusError)
             raise BadStatusError
-        await self._proxy.connect(ssl=True)
+        await self._proxy.connect(ssl=True, server_hostname=hostname)
 
 
 class HttpNgtr(BaseNegotiator):

@@ -176,7 +176,7 @@ class Checker:
             try:
                 proxy.ngtr = proto
                 await proxy.connect()
-                await proxy.ngtr.negotiate(host=judge.host, ip=judge.ip)
+                await proxy.ngtr.negotiate(judge.host)
                 headers, content, rv = \
                     await _send_test_request(self._method, proxy, judge)
             except ProxyTimeoutError:

@@ -249,7 +249,7 @@ class TestHttpsNgtr(AsyncTestCase):
         self.connect.side_effect = future_iter(None)
         host = 'test.com'
 
-        await self.proxy.ngtr.negotiate(host=host)
+        await self.proxy.ngtr.negotiate(host)
 
         req = _CONNECT_request(host=host, port=443)
         self.send.assert_has_calls([call(req)])
@@ -261,7 +261,7 @@ class TestHttpsNgtr(AsyncTestCase):
         self.connect.side_effect = future_iter(None)
 
         with self.assertRaises(BadStatusError):
-            await self.proxy.ngtr.negotiate(host='test.com')
+            await self.proxy.ngtr.negotiate('test.com')
 
     async def test_negotiate_err_bad_resp_2(self):
         self.send.side_effect = future_iter(None)
@@ -270,7 +270,7 @@ class TestHttpsNgtr(AsyncTestCase):
         self.connect.side_effect = future_iter(None)
 
         with self.assertRaises(BadStatusError):
-            await self.proxy.ngtr.negotiate(host='test.com')
+            await self.proxy.ngtr.negotiate('test.com')
 
 
 class TestHttpNgtr(AsyncTestCase):

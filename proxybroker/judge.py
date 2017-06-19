@@ -16,7 +16,7 @@ class Judge:
     ev = {'HTTP': asyncio.Event(), 'HTTPS': asyncio.Event(),
           'SMTP': asyncio.Event()}
 
-    def __init__(self, url, timeout=8, verify_ssl=False, loop=None):
+    def __init__(self, url, timeout=8, verify_ssl=True, loop=None):
         self.url = url
         self.scheme = urlparse(url).scheme.upper()
         self.host = urlparse(url).netloc
@@ -96,7 +96,7 @@ class Judge:
                       ip=(real_ext_ip in page), word=(rv in page)))
 
 
-def get_judges(judges=None, timeout=8, verify_ssl=False):
+def get_judges(judges=None, timeout=8, verify_ssl=True):
     judges = judges or [
         'http://httpbin.org/get?show_env', 'https://httpbin.org/get?show_env',
         'smtp://smtp.gmail.com', 'smtp://aspmx.l.google.com',
