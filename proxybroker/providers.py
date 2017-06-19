@@ -162,6 +162,9 @@ class Provider:
         proxies = self._pattern.findall(page)
         return proxies
 
+    def __str__(self):
+        return '{}'.format(self.url)
+
 
 class Freeproxylists_com(Provider):
     domain = 'freeproxylists.com'
@@ -643,10 +646,6 @@ PROVIDERS = [
              proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 547
     Provider(url='http://free-proxy-list.net/',
              proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 300
-    Provider(url='http://www.proxyservers.eu/',
-             proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 1875
-    Provider(url='http://socks24.ru/proxy/httpProxies.txt',
-             proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 1601
     Provider(url='http://fineproxy.org/eng/?p=6',
              proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 1819
     Provider(url='http://www.socks-proxy.net/',
@@ -680,8 +679,6 @@ PROVIDERS = [
                    'CONNECT:25')),                  # 674
     Proxylistplus_com(proto=('HTTP', 'CONNECT:80',
                              'HTTPS', 'CONNECT:25')),        # 301
-    Proxyb_net(proto=('HTTP', 'CONNECT:80', 'HTTPS',
-                      'CONNECT:25')),               # 857
     Proxz_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
                      'CONNECT:25'), max_conn=2),    # 443
     Proxymore_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
@@ -726,4 +723,10 @@ PROVIDERS = [
     # Provider(url='http://blackstarsecurity.com/proxy-list.txt'),  # 7014
     # Provider(url='http://www.get-proxy.net/proxy-archives'),  # 519
     # Free_proxy_cz(),  # 420
+    # Proxyb_net(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+    # 'CONNECT:25')),               # 857
+    # Provider(url='http://www.proxyservers.eu/',
+    # proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 1875
+    # Provider(url='http://socks24.ru/proxy/httpProxies.txt',
+    # proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 1601
 ]

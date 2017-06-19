@@ -14,7 +14,7 @@ _mmdb_reader = maxminddb.open_database(
     os.path.join(BASE_DIR, 'data', 'GeoLite2-Country.mmdb'))
 
 
-class Resolver(aiohttp.resolver.AsyncResolver):
+class Resolver(aiohttp.resolver.DefaultResolver):
     """Async host resolver based on aiodns."""
 
     _cached_hosts = {}

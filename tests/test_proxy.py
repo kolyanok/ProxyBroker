@@ -1,7 +1,7 @@
-import unittest
-from unittest.mock import Mock, patch
+import socket
+from unittest.mock import patch
 
-from .utils import AsyncTestCase, ResolveResult, future_iter
+from .utils import AsyncTestCase
 
 import time
 from asyncio.streams import StreamReader
@@ -32,8 +32,19 @@ class TestProxy(AsyncTestCase):
         self.assertRaises(ValueError, Proxy, '127.0.0.1', '65536')
 
     async def test_create_with_domain(self):
-        with patch("aiodns.DNSResolver.gethostbyname") as query:
-            query.side_effect = future_iter(ResolveResult(['127.0.0.1'], 0))
+        async def _side_effect(*args, **kwargs):
+            host = 'test.com'
+            address = '127.0.0.1'
+            port = 80
+            family = socket.AF_INET
+            resolve_result = [{'hostname': host,
+                               'host': address, 'port': port,
+                               'family': family, 'proto': 0,
+                               'flags': socket.AI_NUMERICHOST}]
+            return resolve_result
+
+        with patch("aiohttp.DefaultResolver.resolve") as query:
+            query.side_effect = _side_effect
             resolver = Resolver()
             proxy = await Proxy.create('testhost.com', '80', resolver=resolver)
             self.assertEqual(proxy.host, '127.0.0.1')
@@ -42,11 +53,13 @@ class TestProxy(AsyncTestCase):
         p = Proxy('8.8.8.8', '80')
         p._runtimes = [1, 3, 2]
         p.types.update({'HTTP': 'Anonymous', 'HTTPS': None})
-        self.assertEqual(repr(p), '<Proxy US 2.00s [HTTP: Anonymous, HTTPS] 8.8.8.8:80>')
+        self.assertEqual(
+            repr(p), '<Proxy US 2.00s [HTTP: Anonymous, HTTPS] 8.8.8.8:80>')
 
         p.types.clear()
         p.types.update({'SOCKS4': None, 'SOCKS5': None})
-        self.assertEqual(repr(p), '<Proxy US 2.00s [SOCKS4, SOCKS5] 8.8.8.8:80>')
+        self.assertEqual(
+            repr(p), '<Proxy US 2.00s [SOCKS4, SOCKS5] 8.8.8.8:80>')
 
         p = Proxy('127.0.0.1', '80')
         self.assertEqual(repr(p), '<Proxy -- 0.00s [] 127.0.0.1:80>')
@@ -152,12 +165,14 @@ class TestProxy(AsyncTestCase):
             await self.proxy.recv(length=3)
 
     async def test_recv_head_only(self):
-        self.proxy.reader.feed_data(b'HTTP/1.1 200 Connection established\r\n\r\n')
+        self.proxy.reader.feed_data(
+            b'HTTP/1.1 200 Connection established\r\n\r\n')
         self.assertEqual(await self.proxy.recv(head_only=True),
                          b'HTTP/1.1 200 Connection established\r\n\r\n')
         self.proxy.reader._buffer.clear()
 
-        self.proxy.reader.feed_data(b'HTTP/1.1 200 OK\r\nServer: 0\r\n\r\nabcd')
+        self.proxy.reader.feed_data(
+            b'HTTP/1.1 200 OK\r\nServer: 0\r\n\r\nabcd')
         self.assertEqual(await self.proxy.recv(head_only=True),
                          b'HTTP/1.1 200 OK\r\nServer: 0\r\n\r\n')
         self.proxy.reader._buffer.clear()
