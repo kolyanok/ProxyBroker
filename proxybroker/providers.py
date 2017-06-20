@@ -1,10 +1,14 @@
 import re
+import io
 import asyncio
 import warnings
+import concurrent
+import ipaddress
 from math import sqrt
 from html import unescape
 from base64 import b64decode
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, urlparse, urljoin
+from functools import partial
 
 import aiohttp
 
@@ -125,15 +129,16 @@ class Provider:
         log.debug('%d(%d) proxies added(received) from %s' % (
             added, len(received), url))
 
-    async def get(self, url, data=None, headers=None, method='GET'):
+    async def get(self, url, data=None, headers=None, method='GET', raw=False):
         for _ in range(self._max_tries):
             page = await self._get(url, data=data, headers=headers,
-                                   method=method)
+                                   method=method, raw=raw)
             if page:
                 break
         return page
 
-    async def _get(self, url, data=None, headers=None, method='GET'):
+    async def _get(self, url, data=None, headers=None, method='GET',
+                   raw=False):
         page = ''
         try:
             with (await self._sem_provider),\
@@ -141,7 +146,10 @@ class Provider:
                 async with self._session.request(method, url, data=data,
                                                  headers=headers) as resp:
                     if resp.status == 200:
-                        page = await resp.text()
+                        if raw:
+                            page = await resp.read()
+                        else:
+                            page = await resp.text()
                     else:
                         error_page = await resp.text()
                         log.debug('url: %s\nheaders: %s\ncookies: '
@@ -162,8 +170,8 @@ class Provider:
         proxies = self._pattern.findall(page)
         return proxies
 
-    def __str__(self):
-        return '{}'.format(self.url)
+    def __repr__(self):
+        return '<Provider: {}>'.format(self.url)
 
 
 class Freeproxylists_com(Provider):
@@ -499,7 +507,8 @@ class Spys_ru(Provider):
         expPortOnJS = r'(?P<js_port_code>(?:\+\([a-z0-9^+]+\))+)'
         # expCharNum = r'\b(?P<char>[a-z\d]+)=(?P<num>[a-z\d\^]+);'
         expCharNum = r'[>;]{1}(?P<char>[a-z\d]{4,})=(?P<num>[a-z\d\^]+)'
-        # self.charEqNum = {char: i for char, i in re.findall(expCharNum, page)}
+        # self.charEqNum = {char: i for char, i in re.findall(expCharNum,
+        # page)}
         res = re.findall(expCharNum, page)
         for char, num in res:
             if '^' in num:
@@ -627,6 +636,101 @@ class ProxyProvider(Provider):
         super().__init__(*args, **kwargs)
 
 
+Torvpn_com = None
+try:
+    import pyocr
+    tools = pyocr.get_available_tools()
+    if not tools:
+        raise ValueError('No OCR tools found')
+    from bs4 import BeautifulSoup
+    from PIL import Image
+except (ImportError, ValueError):
+    log.debug('Torvpn_com is not available')
+else:
+    class Torvpn_com(Provider):
+        def __init__(self, *args, **kwargs):
+            super().__init__(url='https://www.torvpn.com/en/proxy-list',
+                             *args, **kwargs)
+            self._tool = tools[0]
+            self._executor = concurrent.futures.ProcessPoolExecutor()
+
+        def find_proxies(self, page):
+            return self.proxies
+
+        async def _pipe(self):
+            page = await self.get(self.url)
+            images = await self._get_images(page)
+            proxies, err = await self._extract_ip(images)
+            self.proxies = proxies
+            return self._find_on_page(self.url)
+
+        async def _get_images(self, page):
+            """Get images with ip and port numbers from torvpn.com .
+
+            Return list of {'link': <link-to-img>, 'port': <port>,
+                            'img': <PIL.Image>}.
+            """
+            async def fetch(url, port):
+                resp = await self._get(url, raw=True)
+                return url, port, resp
+
+            soup = BeautifulSoup(page, 'html.parser')
+            tr = soup.select('tr')
+            del tr[0]  # remove header
+
+            tasks = []
+            images = []
+
+            for node in tr:
+                img = node.select('td img')[0]
+                port = img.parent.next_sibling.next_sibling.text
+                path = img['src']
+                url = urljoin(self.url, path)
+                tasks.append(fetch(url, port))
+
+            for task in asyncio.as_completed(tasks):
+                url, port, data = await task
+                images.append({
+                    'link': url,
+                    'port': port,
+                    'img': Image.open(io.BytesIO(data))
+                })
+            return images
+
+        async def _extract_ip(self, img_proxies):
+            """Extract ip address from images.
+
+            `img_proxies` -- return value of _get_images.
+            Return a tuple of working and broken proxies.
+            Each of the tuples is (ip, port)
+            """
+            # images = self._download_images(img_proxies)
+            tasks = [self._extract_one_ip(img) for img in img_proxies]
+
+            proxies, err = [], []
+            for future in asyncio.as_completed(tasks):
+                try:
+                    ip, port = await future
+                    ipaddress.IPv4Address(ip)
+                    proxies.append((ip, port))
+                except ValueError:
+                    err.append((ip, port))
+            return proxies, err
+
+        async def _extract_one_ip(self, img_proxy):
+            """Try to extract an IP from an image.
+            """
+            _tool_func = partial(
+                self._tool.image_to_string,
+                img_proxy['img'],
+                builder=pyocr.tesseract.DigitBuilder()
+            )
+            fut = self._loop.run_in_executor(self._executor, _tool_func)
+            ip = await asyncio.wait_for(fut, 60)
+            res = (ip, img_proxy['port'])
+            return res
+
+
 PROVIDERS = [
     Provider(url='https://getproxy.net/en/',
              proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 25
@@ -731,3 +835,6 @@ PROVIDERS = [
     # Provider(url='http://socks24.ru/proxy/httpProxies.txt',
     # proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 1601
 ]
+
+if Torvpn_com:
+    PROVIDERS.append(Torvpn_com())
