@@ -34,7 +34,7 @@ class TestResolver(AsyncTestCase):
             async def _side_effect(*args, **kwargs):
                 return {'origin': '127.0.0.1'}
             resp = Mock()
-            resp.json.side_effect = resp.release.side_effect = _side_effect
+            resp.json.side_effect = _side_effect
             return resp
 
         with patch("aiohttp.client.ClientSession._request") as resp:

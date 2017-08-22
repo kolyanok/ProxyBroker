@@ -57,9 +57,10 @@ async def fetch_page_by_aiohttp(url, proxy_url, timeout, loop):
     resp = None
     conn = aiohttp.ProxyConnector(proxy_url)
     try:
-        with aiohttp.ClientSession(connector=conn, loop=loop) as session,\
-             aiohttp.Timeout(timeout):
-            async with session.get(url) as response:
+        with aiohttp.Timeout(timeout):
+            async with aiohttp.ClientSession(connector=conn,
+                                             loop=loop) as session,\
+                    session.get(url) as response:
                 logger.info('url: %s; status: %d' % (url, response.status))
                 resp = await response.read()
     except (aiohttp.errors.ClientOSError, aiohttp.errors.ClientResponseError,

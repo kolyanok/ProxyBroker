@@ -86,7 +86,7 @@ class Provider:
         try:
             await self._pipe()
         finally:
-            self._session.close()
+            await self._session.close()
 
         log.debug('%d proxies received from %s: %s' % (
                   len(self.proxies), self.domain, self.proxies))

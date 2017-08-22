@@ -135,17 +135,17 @@ class HttpsNgtr(BaseNegotiator):
 
     name = 'HTTPS'
 
-    async def negotiate(self, hostname):
+    async def negotiate(self, **kwargs):
         """Negotiate with the proxy to connect to the hostname.
         """
-        await self._proxy.send(_CONNECT_request(hostname, 443))
+        await self._proxy.send(_CONNECT_request(kwargs.get('host'), 443))
         resp = await self._proxy.recv(head_only=True)
         code = get_status_code(resp)
         if code != 200:
             self._proxy.log('Connect: failed. HTTP status: %s' % code,
                             err=BadStatusError)
             raise BadStatusError
-        await self._proxy.connect(ssl=True, server_hostname=hostname)
+        await self._proxy.connect(ssl=True, server_hostname=kwargs.get('host'))
 
 
 class HttpNgtr(BaseNegotiator):

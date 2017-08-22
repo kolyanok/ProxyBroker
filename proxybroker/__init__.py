@@ -37,6 +37,7 @@ import logging
 import warnings
 
 
+#  logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('asyncio')
 logger.addFilter(logging.Filter('has no effect when using ssl'))
 

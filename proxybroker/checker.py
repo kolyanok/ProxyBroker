@@ -44,6 +44,9 @@ class Checker:
         await asyncio.gather(*[j.check(real_ext_ip=self._real_ext_ip)
                                for j in self._judges])
 
+        log.debug('Not working judges: {}'.format(
+            [j for j in self._judges if not j.is_working]
+        ))
         self._judges = [j for j in self._judges if j.is_working]
         log.debug('%d judges added. Runtime: %.4f;' % (
             len(self._judges), time.time() - stime))
@@ -176,7 +179,7 @@ class Checker:
             try:
                 proxy.ngtr = proto
                 await proxy.connect()
-                await proxy.ngtr.negotiate(judge.host)
+                await proxy.ngtr.negotiate(host=judge.host)
                 headers, content, rv = \
                     await _send_test_request(self._method, proxy, judge)
             except ProxyTimeoutError:

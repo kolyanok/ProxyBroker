@@ -70,7 +70,8 @@ class Judge:
             loop=self._loop, verify_ssl=self.verify_ssl, force_close=True)
         try:
             with aiohttp.Timeout(self.timeout, loop=self._loop):
-                async with aiohttp.ClientSession(connector=connector, loop=self._loop) as session,\
+                async with aiohttp.ClientSession(connector=connector,
+                                                 loop=self._loop) as session,\
                         session.get(url=self.url, headers=headers,
                                     allow_redirects=False) as resp:
                     page = await resp.text()
@@ -102,8 +103,7 @@ def get_judges(judges=None, timeout=8, verify_ssl=True):
         'smtp://smtp.gmail.com', 'smtp://aspmx.l.google.com',
         'http://azenv.net/', 'https://www.proxy-listen.de/azenv.php',
         'http://www.proxyfire.net/fastenv', 'http://proxyjudge.us/azenv.php',
-        'http://ip.spys.ru/', 'http://www.ingosander.net/azenv.php',
-        'http://www.proxy-listen.de/azenv.php']
+        'http://ip.spys.ru/', 'http://www.proxy-listen.de/azenv.php']
     _judges = []
     for j in judges:
         j = j if isinstance(j, Judge) else Judge(j)
