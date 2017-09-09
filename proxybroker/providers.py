@@ -629,7 +629,46 @@ class Proxylistplus_com(Provider):
                 for n in range(1, 7)]
         await self._find_on_pages(urls)
 
+class Kuaidaili(Provider):
+    domain = "kuaidaili.com"
 
+    async def _pipe(self):
+        urls = ["http://www.kuaidaili.com/free/inha/%d" % n for n in range(1, 21)]
+        urls += ["http://www.kuaidaili.com/free/outha/%d" % n for n in range(1, 21)]
+        await self._find_on_pages(urls)
+
+
+class Xicidaili(Provider):
+    domain = "xicidaili.com"
+
+    async def _pipe(self):
+        urls = ["http://www.xicidaili.com/nn/%d" % n for n in range(1, 21)]
+        urls += ["http://www.xicidaili.com/wn/%d" % n for n in range(1, 21)]
+        await self._find_on_pages(urls)
+
+class Freeproxylists_net(Provider):
+    domain = "freeproxylists.net"
+
+    async def _pipe(self):
+        urls = ["http://www.freeproxylists.net/zh/?pr=HTTPS&a[]=2&page=%d" % n for n in [1, 2]]
+        await self._find_on_pages(urls)
+
+
+class Cnproxy(Provider):
+    domain = "cnproxy.com"
+
+    async def _pipe(self):
+        urls = ["http://www.cnproxy.com/proxy%d.html" % n for n in range(1, 11)]
+        await self._find_on_pages(urls)
+
+
+class Proxy_com_ru(Provider):
+    domain = "proxy.com.ru"
+
+    async def _pipe(self):
+        urls = ["http://proxy.com.ru/gaoni/list_%d.html" % n for n in [1, 2]]
+        await self._find_on_pages(urls)
+        
 class ProxyProvider(Provider):
     def __init__(self, *args, **kwargs):
         warnings.warn('`ProxyProvider` is deprecated, use `Provider` instead.',
@@ -789,8 +828,8 @@ PROVIDERS = [
                              'HTTPS', 'CONNECT:25')),        # 301
     Proxz_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
                      'CONNECT:25'), max_conn=2),    # 443
-    Proxymore_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
-                         'CONNECT:25')),            # 1375
+    #Proxymore_com(proto=('HTTP', 'CONNECT:80', 'HTTPS',
+    #                     'CONNECT:25')),            # 1375
     Proxylist_me(proto=('HTTP', 'CONNECT:80', 'HTTPS',
                         'CONNECT:25')),             # 2872
     Foxtools_ru(proto=('HTTP', 'CONNECT:80', 'HTTPS',
@@ -807,10 +846,10 @@ PROVIDERS = [
                           ),                             # 30
     Blogspot_com_socks(proto=('SOCKS4', 'SOCKS5')
                        ),                                # 1486
-    Tools_rosinstrument_com(
-        proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 4347
-    Tools_rosinstrument_com_socks(
-        proto=('SOCKS4', 'SOCKS5')),                     # 1362
+   # Tools_rosinstrument_com(
+   #     proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 4347
+   # Tools_rosinstrument_com_socks(
+   #     proto=('SOCKS4', 'SOCKS5')),                     # 1362
     # 891
     My_proxy_com(max_conn=2),
     # 15803
@@ -825,6 +864,11 @@ PROVIDERS = [
     Maxiproxies_com(),
     # 822
     _50kproxies_com(),
+    Kuaidaili(),
+    Xicidaili(),
+    Freeproxylists_net(),
+    Cnproxy(),
+    Proxy_com_ru(),
     # # Bad...
     # Provider(url='http://go4free.xyz/Free-Proxy/',
     # proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 196
