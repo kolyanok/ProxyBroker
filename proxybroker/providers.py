@@ -2,6 +2,7 @@ import re
 import io
 import asyncio
 import warnings
+import time
 import concurrent
 import ipaddress
 from math import sqrt
@@ -732,6 +733,8 @@ else:
 
 
 PROVIDERS = [
+    Provider(url='http://schoolshooting.club/proxy/proxy_'+time.strftime("%d-%m-%Y")+'.txt',
+             proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),
     Provider(url='https://getproxy.net/en/',
              proto=('HTTP', 'CONNECT:80', 'HTTPS', 'CONNECT:25')),  # 25
     Provider(url='http://www.proxylists.net/',
