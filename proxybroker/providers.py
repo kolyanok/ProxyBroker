@@ -99,6 +99,7 @@ class Provider:
         self._session = aiohttp.ClientSession(
             connector=connector, headers=get_headers(),
             cookies=self._cookies, loop=self._loop)
+        connector._cached_hosts.add((host, 80), host_info)
 
     async def _pipe(self):
         await self._find_on_page(self.url)
